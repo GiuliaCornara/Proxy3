@@ -1,4 +1,8 @@
 import numpy as np
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5ad5ee1cd0506fa40de3be37ac2ddd39bce6275e
 import torch
 import torch.nn.functional as F
 import self_modules as sm
