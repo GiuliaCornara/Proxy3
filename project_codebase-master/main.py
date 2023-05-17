@@ -18,7 +18,7 @@ import torch.nn.functional as F
 import loss_miner as lm
 import aggregators as ag
 import self_modules as sm
-
+#commento di prova
 class LightningModel(pl.LightningModule):
     def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', agg_config={}):
         super().__init__()

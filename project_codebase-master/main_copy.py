@@ -78,16 +78,10 @@ class ProxySampler(Sampler):
         
     def __iter__(self):
         if self.first_epoch==0:
+            #random sampler aggiornato
             self.first_epoch=1
-            batches=[]
-            index_bank=list(range(len(self.dataset)))
-            while len(index_bank)>self.batch_size:
-                indexes=random.sample(index_bank, self.batch_size)
-                batches.append(indexes)
-                for el in indexes:
-                    index_bank.pop(el)
-                #batches.append(torch.randperm(self.batch_size, generator=self.generator).tolist())
-            batches.append(indexes)
+            batches=torch.randperm(len(self.dataset),generator= self.generator).split(self.batch_size)
+            return iter(batches)
         else:
             print("Casini nel random evitati")
             bank.computeavg()
