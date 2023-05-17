@@ -3,10 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-<<<<<<< HEAD
 # class to implement the GeM pooling layer, to substitute to the current Average Pooling layer of ResNet-18
-=======
->>>>>>> 5ad5ee1cd0506fa40de3be37ac2ddd39bce6275e
 class GeM(nn.Module):
     def __init__(self, p=3, eps=1e-6):
         super(GeM,self).__init__()
