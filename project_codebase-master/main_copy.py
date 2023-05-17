@@ -23,7 +23,7 @@ import self_modules as sm
 from torch.utils.data.sampler import Sampler, BatchSampler, SubsetRandomSampler
 import faiss
 import random
-
+#co
 class ProxySamplerVersione2(Sampler):
 
     first_epoch=0
