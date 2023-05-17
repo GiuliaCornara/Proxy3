@@ -84,16 +84,15 @@ class ProxySampler(Sampler):
             return iter(batches)
         else:
             print("Casini nel random evitati")
-            bank.computeavg()
+            self.bank.computeavg()
             self.bank.update_index()
             batches=[]
             while bank.__len__()>self.batch_size:
                 randint = random.choice(bank.getkeys())
                 #take neareast neighbors of the random place as selected places for the new batch
                 #then remove selected places both from bank and from index
-                indexes= self.proxies.getproxies(rand_index=randint, batch_size=self.batch_size)
-                bank.remove_places(indexes)
-                self.proxies.remove_places(indexes)
+                indexes= self.bank.getproxies(rand_index=randint, batch_size=self.batch_size)
+                self.bank.remove_places(indexes)
                 batches.append(indexes.tolist())
             batches.append(bank.getkeys())  
             self.bank.reset()
