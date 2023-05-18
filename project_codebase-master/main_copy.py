@@ -129,7 +129,7 @@ class ProxySampler(Sampler):
         return self.length
 
 class ProxyHead(nn.Module):
-    def __init__(self, in_channels=512, out_channels=256,):
+    def __init__(self, in_channels=512, out_channels=256):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -192,7 +192,7 @@ class ProxyBank():
         #print(len(self.places))
         # define the proxies ---> for each place in self.places, consider the compact descriptor in the bank corresponding to
         # that place. Create an array
-        self.proxies = np.array([self.proxybank[key][0].detach().cpu() for key in self.places])#.numpy().astype(np.float32)
+        self.proxies = np.array([self.proxybank[key][0].detach().cpu().numpy().astype(np.float32) for key in self.places])#.numpy().astype(np.float32)
         #print("Shape of proxies when updating index")
         #print(self.proxies.shape)
         # add the proxies and the places (labels) to the index
@@ -394,7 +394,7 @@ if __name__ == '__main__':
     args = parser1.parse_arguments()
 
     # define the ProxyBank
-    bank = ProxyBank(args.descriptors_dim)
+    bank = ProxyBank(256)
     train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader = get_datasets_and_dataloaders(args, bank)
     num_classes = train_dataset.__len__()
     model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.loss_func, args.miner, args.optimizer, args.aggr, bank = bank)
