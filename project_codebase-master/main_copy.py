@@ -75,28 +75,36 @@ class ProxySampler(Sampler):
         seed = int(torch.empty((), dtype=torch.int64).random_().item())
         self.generator = torch.Generator()
         self.generator.manual_seed(seed)
+        self.itercounter = 0
+        self.batches = []
         
     def __iter__(self):
-        if self.first_epoch==0:
+        if self.first_epoch==0 and self.itercounter % 2==0:
             #random sampler aggiornato
             self.first_epoch=1
-            batches=torch.randperm(len(self.dataset),generator= self.generator).split(self.batch_size)
-            return iter(batches)
-        else:
+            # torch.randperm(n) returns a random permutation of numbers from 0 to n-1
+            # generator = pseudo-random number generator for sampling
+            # numbers from 0 to len(dataset) ---> split the returned list into a number of sublists = batch_size
+            self.batches = torch.randperm(len(self.dataset), generator=self.generator).split(self.batch_size)
+            return iter(self.batches)
+        elif self.itercunter % 2 ==0:
             print("Casini nel random evitati")
+            print("Number of keys in the bank")
+            print(len(self.bank.getkeys()))
             self.bank.computeavg()
             self.bank.update_index()
-            batches=[]
+            self.batches=[]
             while bank.__len__()>self.batch_size:
                 randint = random.choice(bank.getkeys())
                 #take neareast neighbors of the random place as selected places for the new batch
                 #then remove selected places both from bank and from index
                 indexes= self.bank.getproxies(rand_index=randint, batch_size=self.batch_size)
                 self.bank.remove_places(indexes)
-                batches.append(indexes.tolist())
-            batches.append(bank.getkeys())  
+                self.batches.append(indexes.tolist())
+            self.batches.append(bank.getkeys())  
             self.bank.reset()
-            return iter(batches)
+            self.itercounter +=1
+            return iter(self.batches)
         """Sampler usedas model:
         combined = list(first_half_batches + second_half_batches)
         combined = [batch.tolist() for batch in combined]
