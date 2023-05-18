@@ -197,7 +197,7 @@ class ProxyBank():
         print(self.proxies.shape)
         print(self.proxies[0])
         # add the proxies and the places (labels) to the index
-        self.proxy_faiss_index.add_with_ids(self.proxies, self.places)
+        self.proxy_faiss_index.add_with_ids(self.proxies.cpu().numpy(), self.places)
     
     def getproxies(self, rand_index, batch_size):
         # Here you want to get the k = batch_size closest descriptors to the one corresponding to the rand_index
