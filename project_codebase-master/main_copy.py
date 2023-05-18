@@ -87,7 +87,7 @@ class ProxySampler(Sampler):
             # numbers from 0 to len(dataset) ---> split the returned list into a number of sublists = batch_size
             self.batches = torch.randperm(len(self.dataset), generator=self.generator).split(self.batch_size)
             return iter(self.batches)
-        elif self.itercunter % 2 ==0:
+        elif self.itercounter % 2 ==0:
             print("Casini nel random evitati")
             print("Number of keys in the bank")
             print(len(self.bank.getkeys()))
