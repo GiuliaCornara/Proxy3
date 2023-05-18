@@ -102,9 +102,9 @@ class ProxySampler(Sampler):
                 self.bank.remove_places(indexes)
                 self.batches.append(indexes.tolist())
             self.batches.append(bank.getkeys())  
-            self.bank.reset()
-            self.itercounter +=1
-            return iter(self.batches)
+        self.bank.reset()
+        self.itercounter +=1
+        return iter(self.batches)
         """Sampler usedas model:
         combined = list(first_half_batches + second_half_batches)
         combined = [batch.tolist() for batch in combined]
