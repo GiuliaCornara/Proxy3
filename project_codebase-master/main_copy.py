@@ -201,7 +201,7 @@ class ProxyBank():
     
     def getproxies(self, rand_index, batch_size):
         # Here you want to get the k = batch_size closest descriptors to the one corresponding to the rand_index
-        _, indexes = self.proxy_faiss_index.search(self.proxybank[rand_index][0].unsqueeze(0).cpu().numpy(), batch_size)  
+        _, indexes = self.proxy_faiss_index.search(self.proxybank[rand_index][0].unsqueeze(0).detach().cpu().numpy(), batch_size)  
         #alternativa: self.proxy_faiss_index.search(self.proxies[rand_index], batch_size)
         #ma ti devi fidare di come lui mette i descrittori dentro l'indice
         return indexes[0]
