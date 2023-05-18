@@ -145,8 +145,8 @@ class ProxyBank():
         for compact_descriptor, label in zip(compact_descriptors, labels):
             label=int(label)
             if label in self.proxybank.keys():
-                self.proxybank[label][0]+=compact_descriptor
-                self.proxybank[label][1]+=1
+                self.proxybank[label][0]=self.proxybank[label][0] + compact_descriptor
+                self.proxybank[label][1]=self.proxybank[label][1] + 1
             else: 
                 self.proxybank[label]=[compact_descriptor,1]
     
@@ -157,7 +157,7 @@ class ProxyBank():
 
     def update_index(self):
         self.places=list(self.proxybank.keys())#dopo inizializzazione non viene più modificato
-        self.proxies=np.array([self.proxybank[key][0].numpy().astype(np.float32) for key in self.places])
+        self.proxies=np.array([self.proxybank[key][0].detach().cpu() for key in self.places])
         self.proxy_faiss_index.add_with_ids(self.proxies, self.places)
     
     def getproxies(self, rand_index, batch_size):
