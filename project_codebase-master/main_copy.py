@@ -1,4 +1,3 @@
-
 import torch
 import numpy as np
 import torchvision.models
@@ -187,20 +186,23 @@ class ProxyBank():
 
     def update_index(self):
         # save the places as the list of the keys of the proxy bank
-        self.places = list(self.proxybank.keys()) # after initialization it is not modified
+        self.places = np.array(list(self.proxybank.keys())) # after initialization it is not modified
         #print("Number of places when updating index")
         #print(len(self.places))
         # define the proxies ---> for each place in self.places, consider the compact descriptor in the bank corresponding to
         # that place. Create an array
-        self.proxies = np.array([self.proxybank[key][0].detach().cpu().numpy().astype(np.float32) for key in self.places])#.numpy().astype(np.float32)
-        #print("Shape of proxies when updating index")
-        #print(self.proxies.shape)
+        self.proxies = np.array([self.proxybank[key][0].detach().cpu().numpy() for key in self.places])#.numpy().astype(np.float32)
+        print("Shape of proxies when updating index")
+        print(self.proxies.shape)
+        print(self.proxies[0])
         # add the proxies and the places (labels) to the index
         self.proxy_faiss_index.add_with_ids(self.proxies, self.places)
     
     def getproxies(self, rand_index, batch_size):
         # Here you want to get the k = batch_size closest descriptors to the one corresponding to the rand_index
-        _, indexes = self.proxy_faiss_index.search(self.proxybank[rand_index][0].unsqueeze(0), batch_size)       
+        _, indexes = self.proxy_faiss_index.search(self.proxybank[rand_index][0].unsqueeze(0).detach().cpu().numpy(), batch_size)  
+        #alternativa: self.proxy_faiss_index.search(self.proxies[rand_index], batch_size)
+        #ma ti devi fidare di come lui mette i descrittori dentro l'indice
         return indexes[0]
 
     def reset(self):
@@ -434,4 +436,3 @@ if __name__ == '__main__':
         trainer.test(model = model, dataloaders=test_loader)
     else:
         trainer.test(model=model, dataloaders=test_loader, ckpt_path=args.ckpt_path)
-
