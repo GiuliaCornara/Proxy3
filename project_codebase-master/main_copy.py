@@ -192,9 +192,9 @@ class ProxyBank():
         # define the proxies ---> for each place in self.places, consider the compact descriptor in the bank corresponding to
         # that place. Create an array
         self.proxies = np.array([self.proxybank[key][0].detach().cpu().numpy() for key in self.places])#.numpy().astype(np.float32)
-        print("Shape of proxies when updating index")
-        print(self.proxies.shape)
-        print(self.proxies[0])
+        #print("Shape of proxies when updating index")
+        #print(self.proxies.shape)
+        #print(self.proxies[0])
         # add the proxies and the places (labels) to the index
         self.proxy_faiss_index.add_with_ids(self.proxies, self.places)
     
@@ -329,11 +329,11 @@ class LightningModel(pl.LightningModule):
 
         #at each training iterations the compact descriptors obtained by the forward method after passing through the proxyhead 
         #are added to the bank
-        print("shape of compact descriptors at training step")
-        print(compact.shape)
+        #print("shape of compact descriptors at training step")
+        #print(compact.shape)
         self.bank.adddata(compact, labels)
-        print("length of bank after adddata in training_step")
-        print(self.bank.__len__())
+        #print("length of bank after adddata in training_step")
+        #print(self.bank.__len__())
         
         self.log('loss', loss.item(), logger=True)
         return {'loss': loss}
