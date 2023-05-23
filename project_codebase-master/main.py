@@ -173,10 +173,7 @@ if __name__ == '__main__':
     args = parser1.parse_arguments()
 
     train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader = get_datasets_and_dataloaders(args)
-    print("Avg number of neighbors per image is:")
-    print(test_dataset.get_avg_neighbors())
-    print("Avg number of image per places")
-    print(train_dataset.get_avg_image_per_place())
+ 
    
     
     num_classes = train_dataset.__len__()
