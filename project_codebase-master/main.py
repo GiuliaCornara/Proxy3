@@ -173,6 +173,7 @@ if __name__ == '__main__':
     args = parser1.parse_arguments()
 
     train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader = get_datasets_and_dataloaders(args)
+    print(test_dataset.get_avg_neighbors())
     num_classes = train_dataset.__len__()
     model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.loss_func, args.miner, args.optimizer, args.aggr)
     
