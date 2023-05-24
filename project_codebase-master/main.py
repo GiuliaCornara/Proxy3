@@ -18,6 +18,9 @@ import torch.nn.functional as F
 import loss_miner as lm
 import aggregators as ag
 import self_modules as sm
+
+from PIL import ImageOps, ImageFilter
+from torchvision.transforms import InterpolationMode
 #commento di prova
 class GaussianBlur(object):
     def __init__(self, p):
@@ -44,25 +47,25 @@ class Solarization(object):
 
 class TrainTransform(object):
     def __init__(self):
-        self.transform = transforms.Compose(
+        self.transform = tfm.Compose(
             [
-                transforms.RandomResizedCrop(
+                tfm.RandomResizedCrop(
                     224, interpolation=InterpolationMode.BICUBIC
                 ),
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomApply(
+                tfm.RandomHorizontalFlip(p=0.5),
+                tfm.RandomApply(
                     [
-                        transforms.ColorJitter(
+                        tfm.ColorJitter(
                             brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1
                         )
                     ],
                     p=0.8,
                 ),
-                transforms.RandomGrayscale(p=0.2),
+                tfm.RandomGrayscale(p=0.2),
                 GaussianBlur(p=1.0),
                 Solarization(p=0.0),
-                transforms.ToTensor(),
-                transforms.Normalize(
+                tfm.ToTensor(),
+                tfm.Normalize(
                     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
                 ),
             ]
