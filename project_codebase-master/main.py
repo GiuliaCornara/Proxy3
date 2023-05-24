@@ -172,7 +172,7 @@ class LightningModel(pl.LightningModule):
         #Added also a term below!!
         
         
-        loss = self.loss_function(descriptors, labels)  + self.loss_unsupervised(augmented,desccriptors)  # Call the loss_function we defined above
+        loss = self.loss_function(descriptors, labels)  + self.loss_unsupervised(augmented,descriptors)  # Call the loss_function we defined above
 
         self.log('loss', loss.item(), logger=True)
         return {'loss': loss}
