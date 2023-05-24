@@ -19,6 +19,55 @@ import loss_miner as lm
 import aggregators as ag
 import self_modules as sm
 #commento di prova
+class GaussianBlur(object):
+    def __init__(self, p):
+        self.p = p
+
+    def __call__(self, img):
+        if np.random.rand() < self.p:
+            sigma = np.random.rand() * 1.9 + 0.1
+            return img.filter(ImageFilter.GaussianBlur(sigma))
+        else:
+            return img
+
+
+class Solarization(object):
+    def __init__(self, p):
+        self.p = p
+
+    def __call__(self, img):
+        if np.random.rand() < self.p:
+            return ImageOps.solarize(img)
+        else:
+            return img
+
+
+class TrainTransform(object):
+    def __init__(self):
+        self.transform = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(
+                    224, interpolation=InterpolationMode.BICUBIC
+                ),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomApply(
+                    [
+                        transforms.ColorJitter(
+                            brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1
+                        )
+                    ],
+                    p=0.8,
+                ),
+                transforms.RandomGrayscale(p=0.2),
+                GaussianBlur(p=1.0),
+                Solarization(p=0.0),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+
 class LightningModel(pl.LightningModule):
     def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', agg_config={}):
         super().__init__()
@@ -66,6 +115,12 @@ class LightningModel(pl.LightningModule):
         # Set the loss function
         self.loss_fn = lm.get_loss(loss_name, num_classes, self.embedding_size)#add num_classes -> idea: send not only the name of the loss you want
                                             # but also the num_classes in case it is CosFace or ArcFace
+        
+        
+        self.loss_unsupervised=losses.VICRegLoss()
+        self.augmentation = TrainTransform()
+        
+        
         # Set the miner
         self.miner = lm.get_miner(miner_name)
 
@@ -111,7 +166,13 @@ class LightningModel(pl.LightningModule):
 
         # Feed forward the batch to the model
         descriptors = self(images)  # Here we are calling the method forward that we defined above
-        loss = self.loss_function(descriptors, labels)  # Call the loss_function we defined above
+        
+        
+        augmented=self.augmentation(descriptors)
+        #Added also a term below!!
+        
+        
+        loss = self.loss_function(descriptors, labels)  + self.loss_unsupervised(augmented,desccriptors)  # Call the loss_function we defined above
 
         self.log('loss', loss.item(), logger=True)
         return {'loss': loss}
