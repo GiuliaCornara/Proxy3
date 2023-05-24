@@ -55,3 +55,12 @@ class TrainDataset(Dataset):
     def __len__(self):
         """Denotes the total number of places (not images)"""
         return len(self.places_ids)
+    
+    def get_avg_image_per_place(self):
+        tot=0
+        num=0
+        for key, value in self.dict_place_paths.items():
+            tot+=len(value)
+            num+=1    
+        return tot/num
+    

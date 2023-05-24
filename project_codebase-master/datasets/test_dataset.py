@@ -83,4 +83,12 @@ class TestDataset(data.Dataset):
 
     def get_positives(self):
         return self.positives_per_query
+    
+    def get_avg_neighbors(self):
+        tot=0
+        num=0
+        for el in self.positives_per_query:
+            tot+=len(el)
+            num += 1
+        return tot/num
 
