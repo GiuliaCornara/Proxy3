@@ -118,6 +118,7 @@ class LightningModel(pl.LightningModule):
         images, augmented_images, labels = batch
         num_places, num_images_per_place, C, H, W = images.shape
         images = images.view(num_places * num_images_per_place, C, H, W)
+        augmented_images = augmented_images.view(num_places * num_images_per_place, C, H, W)
         labels = labels.view(num_places * num_images_per_place)
 
         # Feed forward the batch to the model
