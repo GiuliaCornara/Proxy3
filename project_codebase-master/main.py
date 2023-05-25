@@ -99,10 +99,10 @@ class LightningModel(pl.LightningModule):
                 tfm.RandomHorizontalFlip(p=0.5),
                 tfm.RandomApply([tfm.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1 ) ], p=0.8 ),
                 tfm.RandomGrayscale(p=0.2),
-                GaussianBlur(p=1.0),
-                Solarization(p=0.0),
                 tfm.ToTensor(),
                 tfm.Normalize( mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225] ) ] )
+        #GaussianBlur(p=1.0),
+               # Solarization(p=0.0),
         
         
         # Set the miner
