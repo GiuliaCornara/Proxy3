@@ -22,27 +22,7 @@ import self_modules as sm
 from PIL import ImageOps, ImageFilter
 from torchvision.transforms import InterpolationMode
 #commento di prova
-class GaussianBlur(object):
-    def __init__(self, p):
-        self.p = p
 
-    def __call__(self, img):
-        if np.random.rand() < self.p:
-            sigma = np.random.rand() * 1.9 + 0.1
-            return img.filter(ImageFilter.GaussianBlur(sigma))
-        else:
-            return img
-
-
-class Solarization(object):
-    def __init__(self, p):
-        self.p = p
-
-    def __call__(self, img):
-        if np.random.rand() < self.p:
-            return ImageOps.solarize(img)
-        else:
-            return img
 
 
 class LightningModel(pl.LightningModule):
@@ -95,14 +75,6 @@ class LightningModel(pl.LightningModule):
         
         
         self.loss_unsupervised=losses.VICRegLoss()
-        self.augmentation = self.transform = tfm.Compose( [tfm.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
-                tfm.RandomHorizontalFlip(p=0.5),
-                tfm.RandomApply([tfm.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1 ) ], p=0.8 ),
-                tfm.RandomGrayscale(p=0.2),
-                tfm.ToTensor(),
-                tfm.Normalize( mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225] ) ] )
-        #GaussianBlur(p=1.0),
-               # Solarization(p=0.0),
         
         
         # Set the miner
@@ -143,7 +115,7 @@ class LightningModel(pl.LightningModule):
 
     # This is the training step that's executed at each iteration
     def training_step(self, batch, batch_idx, optimizer_idx = None): #optimizer_idx
-        images, labels = batch
+        images, augmented_images, labels = batch
         num_places, num_images_per_place, C, H, W = images.shape
         images = images.view(num_places * num_images_per_place, C, H, W)
         labels = labels.view(num_places * num_images_per_place)
@@ -152,7 +124,6 @@ class LightningModel(pl.LightningModule):
         descriptors = self(images)  # Here we are calling the method forward that we defined above
         
         
-        augmented_images=self.augmentation(images)
         augmented = self(augmented_images)
         #Added also a term below!!
         
