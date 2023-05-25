@@ -12,6 +12,28 @@ default_transform = tfm.Compose([
     tfm.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
+class GaussianBlur(object):
+    def __init__(self, p):
+        self.p = p
+
+    def __call__(self, img):
+        if np.random.rand() < self.p:
+            sigma = np.random.rand() * 1.9 + 0.1
+            return img.filter(ImageFilter.GaussianBlur(sigma))
+        else:
+            return img
+
+
+class Solarization(object):
+    def __init__(self, p):
+        self.p = p
+
+    def __call__(self, img):
+        if np.random.rand() < self.p:
+            return ImageOps.solarize(img)
+        else:
+            return img
+
 
 class TrainDataset(Dataset):
     def __init__(
@@ -35,6 +57,29 @@ class TrainDataset(Dataset):
             f"img_per_place should be less than {min_img_per_place}"
         self.img_per_place = img_per_place
         self.transform = transform
+        self.augmentation = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(
+                    224, interpolation=InterpolationMode.BICUBIC
+                ),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomApply(
+                    [
+                        transforms.ColorJitter(
+                            brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1
+                        )
+                    ],
+                    p=0.8,
+                ),
+                transforms.RandomGrayscale(p=0.2),
+                GaussianBlur(p=1.0),
+                Solarization(p=0.0),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
 
         # keep only places depicted by at least min_img_per_place images
         for place_id in list(self.dict_place_paths.keys()):
@@ -49,8 +94,9 @@ class TrainDataset(Dataset):
         all_paths_from_place_id = self.dict_place_paths[place_id]
         chosen_paths = np.random.choice(all_paths_from_place_id, self.img_per_place)
         images = [Image.open(path).convert('RGB') for path in chosen_paths]
+        augmented_images=[self.augmentation(img) for img in images]
         images = [self.transform(img) for img in images]
-        return torch.stack(images), torch.tensor(index).repeat(self.img_per_place)
+        return torch.stack(images),torch.stack(augmented_images), torch.tensor(index).repeat(self.img_per_place)
 
     def __len__(self):
         """Denotes the total number of places (not images)"""
