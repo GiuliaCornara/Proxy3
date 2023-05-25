@@ -45,32 +45,6 @@ class Solarization(object):
             return img
 
 
-class TrainTransform(object):
-    def __init__(self):
-        self.transform = tfm.Compose(
-            [
-                tfm.RandomResizedCrop(
-                    224, interpolation=InterpolationMode.BICUBIC
-                ),
-                tfm.RandomHorizontalFlip(p=0.5),
-                tfm.RandomApply(
-                    [
-                        tfm.ColorJitter(
-                            brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1
-                        )
-                    ],
-                    p=0.8,
-                ),
-                tfm.RandomGrayscale(p=0.2),
-                GaussianBlur(p=1.0),
-                Solarization(p=0.0),
-                tfm.ToTensor(),
-                tfm.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-
 class LightningModel(pl.LightningModule):
     def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', agg_config={}):
         super().__init__()
@@ -178,7 +152,8 @@ class LightningModel(pl.LightningModule):
         descriptors = self(images)  # Here we are calling the method forward that we defined above
         
         
-        augmented=self.augmentation(descriptors)
+        augmented_images=self.augmentation(images)
+        augmented = self(augmented_images)
         #Added also a term below!!
         
         
