@@ -6,6 +6,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 import torchvision.transforms as tfm
 from collections import defaultdict
+from PIL import ImageOps, ImageFilter
+from torchvision.transforms import InterpolationMode
 
 default_transform = tfm.Compose([
     tfm.ToTensor(),
@@ -57,25 +59,25 @@ class TrainDataset(Dataset):
             f"img_per_place should be less than {min_img_per_place}"
         self.img_per_place = img_per_place
         self.transform = transform
-        self.augmentation = transforms.Compose(
+        self.augmentation = tfm.Compose(
             [
-                transforms.RandomResizedCrop(
+                tfm.RandomResizedCrop(
                     224, interpolation=InterpolationMode.BICUBIC
                 ),
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomApply(
+                tfm.RandomHorizontalFlip(p=0.5),
+                tfm.RandomApply(
                     [
-                        transforms.ColorJitter(
+                        tfm.ColorJitter(
                             brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1
                         )
                     ],
                     p=0.8,
                 ),
-                transforms.RandomGrayscale(p=0.2),
+                tfm.RandomGrayscale(p=0.2),
                 GaussianBlur(p=1.0),
                 Solarization(p=0.0),
-                transforms.ToTensor(),
-                transforms.Normalize(
+                tfm.ToTensor(),
+                tfm.Normalize(
                     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
                 ),
             ]
