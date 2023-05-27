@@ -69,9 +69,9 @@ class LightningModel(pl.LightningModule):
         self.loss_fn = lm.get_loss(loss_name, num_classes, self.embedding_size)#add num_classes -> idea: send not only the name of the loss you want
                                             # but also the num_classes in case it is CosFace or ArcFace
         
-        self.self_supervised = self_supervised
+        #self.self_supervised = self_supervised
 
-        self.loss_unsupervised=losses.VICRegLoss()
+        #self.loss_unsupervised=losses.VICRegLoss()
         
         
         # Set the miner
@@ -112,7 +112,7 @@ class LightningModel(pl.LightningModule):
 
     # This is the training step that's executed at each iteration
     def training_step(self, batch, batch_idx, optimizer_idx = None): #optimizer_idx
-        images, augmented_images, labels = batch
+        images, labels = batch #augmented_images,
         num_places, num_images_per_place, C, H, W = images.shape
         images = images.view(num_places * num_images_per_place, C, H, W)
         #tolto passaggio qui
@@ -123,14 +123,14 @@ class LightningModel(pl.LightningModule):
         
         #pass through the network also the augmented images, to compute VicRegLoss, if you want to try self_supervised.
         #otherwise, follow standard approach
-        if self.self_supervised==True:
+        """if self.self_supervised==True:
             augmented_images = augmented_images.view(num_places * num_images_per_place, C, H, W)
             augmented = self(augmented_images)
             loss =  self.loss_function(descriptors, labels)  + self.loss_unsupervised(augmented,ref_emb = descriptors)
         else:
-            loss =  self.loss_function(descriptors, labels) # Call the loss_function we defined above
+            loss =  self.loss_function(descriptors, labels) # Call the loss_function we defined above"""
 
-        
+        loss =  self.loss_function(descriptors, labels)
         self.log('loss', loss.item(), logger=True)
         return {'loss': loss}
 
