@@ -96,9 +96,9 @@ class TrainDataset(Dataset):
         all_paths_from_place_id = self.dict_place_paths[place_id]
         chosen_paths = np.random.choice(all_paths_from_place_id, self.img_per_place)
         images = [Image.open(path).convert('RGB') for path in chosen_paths]
-        augmented_images=[self.augmentation(img) for img in images]
+        #augmented_images=[self.augmentation(img) for img in images]
         images = [self.transform(img) for img in images]
-        return torch.stack(images),torch.stack(augmented_images), torch.tensor(index).repeat(self.img_per_place)
+        return torch.stack(images), torch.tensor(index).repeat(self.img_per_place) #torch.stack(augmented_images),
 
     def __len__(self):
         """Denotes the total number of places (not images)"""
