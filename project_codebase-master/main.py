@@ -115,7 +115,7 @@ class LightningModel(pl.LightningModule):
         images, augmented_images, labels = batch
         num_places, num_images_per_place, C, H, W = images.shape
         images = images.view(num_places * num_images_per_place, C, H, W)
-        augmented_images = augmented_images.view(num_places * num_images_per_place, C, H, W)
+        #tolto passaggio qui
         labels = labels.view(num_places * num_images_per_place)
 
         # Feed forward the batch to the model
@@ -136,7 +136,7 @@ class LightningModel(pl.LightningModule):
 
     # For validation and test, we iterate step by step over the validation set
     def inference_step(self, batch):
-        images, _ = batch
+        images, _ , _ = batch
         descriptors = self(images) #in the inference I don't care for the descriptors of the PROXYHEAD
         return descriptors.cpu().numpy().astype(np.float32)
 
