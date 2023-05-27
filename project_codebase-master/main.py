@@ -19,28 +19,27 @@ import loss_miner as lm
 import aggregators as ag
 import self_modules as sm
 
-
-
 class LightningModel(pl.LightningModule):
-    def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', self_supervised='False', agg_config={}):
+    def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, sched_name = None, max_epochs = 20, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', agg_config={}):
         super().__init__()
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self.num_preds_to_save = num_preds_to_save
         self.save_only_wrong_preds = save_only_wrong_preds
         self.embedding_size = descriptors_dim
-        #save loss name and miner name
+        self.max_epochs = max_epochs
+        #save loss name, miner name and optimizer name
         self.loss_name = loss_name
         self.miner_name = miner_name
         self.opt_name = opt_name
-        # Save the aggregator name
+        self.sched_name = sched_name
+        # Save the aggregator name and configurations
         self.agg_arch = agg_arch
         self.agg_config = agg_config
-        #save number of classes for the loss functions
-        self.num_classes = num_classes
+        #save number of classes for the loss functions (Cosface and Arcface)
+        self.num_classes = num_classes #in this case: 62514
         #save embedding_size
         self.embedding_size = descriptors_dim
-        #print(self.num_classes)
         # Use a pretrained model
         self.model = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights.DEFAULT)
         # Save in_features of model.fc
@@ -52,28 +51,27 @@ class LightningModel(pl.LightningModule):
         #the backbone outputs descriptors of dimension (num_batches = 256, 512, 7, 7)
         if self.agg_arch == "gem":
             self.aggregator = nn.Sequential(
+                #performs L2 normalization; doesn't change dimensions 
                 ag.L2Norm(),
+                #call the gem aggregator: output of size (num_batches, 512, 7, 7)
                 ag.get_aggregator(agg_arch, agg_config),
+                #flatten the previous output so that we get dim (num_batches, 512)
                 ag.Flatten(),
+                #apply linear layer as last fc of Resnet-18: output of size (num_batches = 256, 512)
                 nn.Linear(self.in_feats, descriptors_dim),
+                #L2 normalization
                 ag.L2Norm()
             )
-            #after: we are going to obtain an output of size (256, 512)
         elif self.agg_arch == "mixvpr":
             self.aggregator = nn.Sequential(
                 ag.get_aggregator(agg_arch, agg_config),
+                #MixVpr output is (256, 2048). We apply a final fully connected (as in original structure of ResNet-18), considering
+                # as input features size 2048, and output features stays the same (512)
                 nn.Linear(2048, descriptors_dim)
             )
-            #self.aggregator = ag.get_aggregator(agg_arch, agg_config)
         # Set the loss function
-        self.loss_fn = lm.get_loss(loss_name, num_classes, self.embedding_size)#add num_classes -> idea: send not only the name of the loss you want
-                                            # but also the num_classes in case it is CosFace or ArcFace
-        
-        #self.self_supervised = self_supervised
-
-        #self.loss_unsupervised=losses.VICRegLoss()
-        
-        
+        self.loss_fn = lm.get_loss(loss_name, num_classes, self.embedding_size)#add num_classes and embedding_size
+        #-> idea: send not only the name of the loss you want but also the num_classes and embedding_size in case it is CosFace or ArcFace
         # Set the miner
         self.miner = lm.get_miner(miner_name)
 
@@ -94,11 +92,27 @@ class LightningModel(pl.LightningModule):
             optimizers = torch.optim.Adam(self.parameters(), lr=0.0001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
         if self.opt_name.lower() == "asgd":
             optimizers = torch.optim.ASGD(self.parameters(), lr=0.01, lambd=0.0001, alpha=0.75, t0=1000000.0, weight_decay=0)
+        # define the scheduler to adjust the learning rate
+        if(self.sched_name == None):
+            scheduler = None
+        elif(self.sched_name.lower() == "cosineannealing"):
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizers, self.max_epochs)
+        elif(self.sched_name.lower() == "plateau"):
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizers, mode = "min", patience = 2)
+        elif(self.sched_name.lower() == "onecycle"):
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizers, max_lr = 0.01, epochs = self.max_epochs, steps_per_epoch = len(train_loader))
         #cosface and arcface assume normalization ---> similar to linear layers
         if self.loss_name == "cosface" or self.loss_name == "arcface":
             self.loss_optimizer = torch.optim.SGD(self.loss_fn.parameters(), lr = 0.01)
-            return [optimizers, self.loss_optimizer]
-        return optimizers
+            if(scheduler is None):
+                return [optimizers, self.loss_optimizer]
+            #return [optimizers, self.loss_optimizer], scheduler
+            return {"optimizer": [optimizers, self.loss_optimizer], "lr_scheduler": scheduler, "monitor" : "loss"}
+        if(scheduler is None):
+            return optimizers
+        #return [optimizers], scheduler
+        return {"optimizer": optimizers, "lr_scheduler": scheduler, "monitor" : "loss"}
+    #{"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}
 
 
     #  The loss function call (this method will be called at each training iteration)
@@ -112,25 +126,15 @@ class LightningModel(pl.LightningModule):
 
     # This is the training step that's executed at each iteration
     def training_step(self, batch, batch_idx, optimizer_idx = None): #optimizer_idx
-        images, labels = batch #augmented_images,
+        images, labels = batch
         num_places, num_images_per_place, C, H, W = images.shape
         images = images.view(num_places * num_images_per_place, C, H, W)
-        #tolto passaggio qui
         labels = labels.view(num_places * num_images_per_place)
 
         # Feed forward the batch to the model
         descriptors = self(images)  # Here we are calling the method forward that we defined above
-        
-        #pass through the network also the augmented images, to compute VicRegLoss, if you want to try self_supervised.
-        #otherwise, follow standard approach
-        """if self.self_supervised==True:
-            augmented_images = augmented_images.view(num_places * num_images_per_place, C, H, W)
-            augmented = self(augmented_images)
-            loss =  self.loss_function(descriptors, labels)  + self.loss_unsupervised(augmented,ref_emb = descriptors)
-        else:
-            loss =  self.loss_function(descriptors, labels) # Call the loss_function we defined above"""
+        loss = self.loss_function(descriptors, labels)  # Call the loss_function we defined above
 
-        loss =  self.loss_function(descriptors, labels)
         self.log('loss', loss.item(), logger=True)
         return {'loss': loss}
 
@@ -191,11 +195,8 @@ if __name__ == '__main__':
     args = parser1.parse_arguments()
 
     train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader = get_datasets_and_dataloaders(args)
- 
-   
-    
     num_classes = train_dataset.__len__()
-    model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.loss_func, args.miner, args.optimizer, args.aggr, args.self_supervised)
+    model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.scheduler, args.max_epochs, args.loss_func, args.miner, args.optimizer, args.aggr)
     
     # Model params saving using Pytorch Lightning. Save the best 3 models according to Recall@1
     checkpoint_cb = ModelCheckpoint(
