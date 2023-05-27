@@ -27,6 +27,7 @@ def parse_arguments():
                         help="define the optimizer to implement")
     parser.add_argument("--aggr", type=str, default="gem",
                         help="training aggregator to implement")
+    parser.add_argument("--self_supervised", type=bool, default=False, help="Insert boolean if you want to use self supervised loss (VicReg)")
     
     # Visualizations parameters
     parser.add_argument("--num_preds_to_save", type=int, default=0,
