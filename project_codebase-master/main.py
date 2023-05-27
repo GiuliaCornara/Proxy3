@@ -136,7 +136,7 @@ class LightningModel(pl.LightningModule):
 
     # For validation and test, we iterate step by step over the validation set
     def inference_step(self, batch):
-        images, _ , _ = batch
+        images, _ = batch
         descriptors = self(images) #in the inference I don't care for the descriptors of the PROXYHEAD
         return descriptors.cpu().numpy().astype(np.float32)
 
