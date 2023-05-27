@@ -1,3 +1,4 @@
+
 import torch
 import numpy as np
 import torchvision.models
@@ -79,7 +80,7 @@ class ProxySampler(Sampler):
         self.batches = []
         
     def __iter__(self): # Lightening Module calls it twice for each epoch
-        if self.first_epoch==0 and self.itercounter % 2==0:
+        if self.first_epoch==0 and self.itercounter % 2 == 0:
             self.first_epoch=1
             #index_bank=list(range(len(self.dataset)))
             """
@@ -94,11 +95,11 @@ class ProxySampler(Sampler):
             # generator = pseudo-random number generator for sampling
             # numbers from 0 to len(dataset) ---> split the returned list into a number of sublists = batch_size
             self.batches = torch.randperm(len(self.dataset), generator=self.generator).split(self.batch_size)
-            #print("Shape of batches at first epoch")
-            #print(len(self.batches))
+            print("Shape of batches at first epoch")
+            print(len(self.batches))
             #self.itercounter += 1
             #return iter(self.batches)
-        elif self.itercounter % 2 ==0:
+        elif self.itercounter % 2 == 0:
             print("Casini nel random evitati")
             print(self.bank.__len__())
             print("Number of keys in the bank")
@@ -186,21 +187,20 @@ class ProxyBank():
 
     def update_index(self):
         # save the places as the list of the keys of the proxy bank
-        self.places = np.array(list(self.proxybank.keys())) # after initialization it is not modified
+        self.places = list(self.proxybank.keys()) # after initialization it is not modified
         #print("Number of places when updating index")
         #print(len(self.places))
         # define the proxies ---> for each place in self.places, consider the compact descriptor in the bank corresponding to
         # that place. Create an array
-        self.proxies = np.array([self.proxybank[key][0].detach().cpu().numpy() for key in self.places])#.numpy().astype(np.float32)
+        self.proxies = np.array([self.proxybank[key][0].detach().cpu().numpy() for key in self.places]) #.numpy().astype(np.float32)
         #print("Shape of proxies when updating index")
         #print(self.proxies.shape)
-        #print(self.proxies[0])
         # add the proxies and the places (labels) to the index
         self.proxy_faiss_index.add_with_ids(self.proxies, self.places)
     
     def getproxies(self, rand_index, batch_size):
         # Here you want to get the k = batch_size closest descriptors to the one corresponding to the rand_index
-        _, indexes = self.proxy_faiss_index.search(self.proxybank[rand_index][0].unsqueeze(0).detach().cpu().numpy(), batch_size)  
+        _, indexes = self.proxy_faiss_index.search(self.proxybank[rand_index][0].unsqueeze(0).detach().cpu().numpy(), batch_size)       
         #alternativa: self.proxy_faiss_index.search(self.proxies[rand_index], batch_size)
         #ma ti devi fidare di come lui mette i descrittori dentro l'indice
         return indexes[0]
@@ -230,7 +230,7 @@ class ProxyBank():
         return len(self.proxybank)
 
 class LightningModel(pl.LightningModule):
-    def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', self_supervised='False', bank=None, agg_config={}):
+    def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', agg_config={}, bank=None):
         super().__init__()
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
@@ -277,10 +277,6 @@ class LightningModel(pl.LightningModule):
         # Set the loss function
         self.loss_fn = lm.get_loss(loss_name, num_classes, self.embedding_size)#idea: send not only the name of the loss you want
                                             # but also the num_classes in case it is CosFace or ArcFace
-        self.loss_head = lm.get_loss(loss_name, num_classes, self.embedding_size)
-
-        
-        self.self_supervised = self_supervised
         # Set the miner
         self.miner = lm.get_miner(miner_name)
         
@@ -290,10 +286,10 @@ class LightningModel(pl.LightningModule):
         descriptors1 = self.aggregator(descriptors)
         #apply the proxyhead to obtain a new dimensionality reduction
         descriptors2 = self.proxyhead(descriptors1)
-        #print("Descriptors shape (output of aggregator)")
-        #print(descriptors1.shape)
-        #print("Output proxy")
-        #print(descriptors2.shape)
+        print("Descriptors shape (output of aggregator)")
+        print(descriptors1.shape)
+        print("Output proxy")
+        print(descriptors2.shape)
         return descriptors1, descriptors2
 
     def configure_optimizers(self):
@@ -322,22 +318,22 @@ class LightningModel(pl.LightningModule):
 
     # This is the training step that's executed at each iteration
     def training_step(self, batch, batch_idx, optimizer_idx = None):
-        images, augmented_images, labels = batch
+        images, labels = batch
         num_places, num_images_per_place, C, H, W = images.shape
         images = images.view(num_places * num_images_per_place, C, H, W)
         labels = labels.view(num_places * num_images_per_place)
 
         # Feed forward the batch to the model
         descriptors, compact = self(images)  # Here we are calling the method forward that we defined above
-        loss = self.loss_function(descriptors, labels) + self.loss_head(compact,labels)  # Call the loss_function we defined above
+        loss = self.loss_function(descriptors, labels)  # Call the loss_function we defined above
 
         #at each training iterations the compact descriptors obtained by the forward method after passing through the proxyhead 
         #are added to the bank
-        #print("shape of compact descriptors at training step")
-        #print(compact.shape)
+        print("shape of compact descriptors at training step")
+        print(compact.shape)
         self.bank.adddata(compact, labels)
-        #print("length of bank after adddata in training_step")
-        #print(self.bank.__len__())
+        print("length of bank after adddata in training_step")
+        print(self.bank.__len__())
         
         self.log('loss', loss.item(), logger=True)
         return {'loss': loss}
@@ -400,10 +396,11 @@ if __name__ == '__main__':
     args = parser1.parse_arguments()
 
     # define the ProxyBank
+    #bank = ProxyBank(args.descriptors_dim)
     bank = ProxyBank(256)
     train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader = get_datasets_and_dataloaders(args, bank)
     num_classes = train_dataset.__len__()
-    model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.loss_func, args.miner, args.optimizer, args.aggr, args.self_supervised, bank = bank)
+    model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.loss_func, args.miner, args.optimizer, args.aggr, bank = bank)
     
     # Model params saving using Pytorch Lightning. Save the best 3 models according to Recall@1
     checkpoint_cb = ModelCheckpoint(
@@ -440,3 +437,4 @@ if __name__ == '__main__':
         trainer.test(model = model, dataloaders=test_loader)
     else:
         trainer.test(model=model, dataloaders=test_loader, ckpt_path=args.ckpt_path)
+
