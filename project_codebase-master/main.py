@@ -19,14 +19,10 @@ import loss_miner as lm
 import aggregators as ag
 import self_modules as sm
 
-from PIL import ImageOps, ImageFilter
-from torchvision.transforms import InterpolationMode
-#commento di prova
-
 
 
 class LightningModel(pl.LightningModule):
-    def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', agg_config={}):
+    def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', self_supervised='False', agg_config={}):
         super().__init__()
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
@@ -73,7 +69,8 @@ class LightningModel(pl.LightningModule):
         self.loss_fn = lm.get_loss(loss_name, num_classes, self.embedding_size)#add num_classes -> idea: send not only the name of the loss you want
                                             # but also the num_classes in case it is CosFace or ArcFace
         
-        
+        self.self_supervised = self_supervised
+
         self.loss_unsupervised=losses.VICRegLoss()
         
         
@@ -124,13 +121,16 @@ class LightningModel(pl.LightningModule):
         # Feed forward the batch to the model
         descriptors = self(images)  # Here we are calling the method forward that we defined above
         
-        
-        augmented = self(augmented_images)
-        #Added also a term below!!
-        
-        
-        loss = + self.loss_unsupervised(augmented,ref_emb = descriptors) + self.loss_function(descriptors, labels)   # Call the loss_function we defined above
+        #pass through the network also the augmented images, to compute VicRegLoss, if you want to try self_supervised.
+        #otherwise, follow standard approach
+        if self.self_supervised==True:
+            augmented_images = augmented_images.view(num_places * num_images_per_place, C, H, W)
+            augmented = self(augmented_images)
+            loss =  self.loss_function(descriptors, labels)  + self.loss_unsupervised(augmented,ref_emb = descriptors)
+        else:
+            loss =  self.loss_function(descriptors, labels) # Call the loss_function we defined above
 
+        
         self.log('loss', loss.item(), logger=True)
         return {'loss': loss}
 
@@ -195,7 +195,7 @@ if __name__ == '__main__':
    
     
     num_classes = train_dataset.__len__()
-    model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.loss_func, args.miner, args.optimizer, args.aggr)
+    model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.loss_func, args.miner, args.optimizer, args.aggr, args.self_supervised)
     
     # Model params saving using Pytorch Lightning. Save the best 3 models according to Recall@1
     checkpoint_cb = ModelCheckpoint(
