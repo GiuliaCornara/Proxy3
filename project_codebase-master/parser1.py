@@ -27,7 +27,8 @@ def parse_arguments():
                         help="define the optimizer to implement")
     parser.add_argument("--aggr", type=str, default="gem",
                         help="training aggregator to implement")
-    parser.add_argument("--self_supervised", type=bool, default=False, help="Insert boolean if you want to use self supervised loss (VicReg)")
+    parser.add_argument("--scheduler", type = str, default = None,
+                        help = "Define a scheduler to adap the learning rate")
     
     # Visualizations parameters
     parser.add_argument("--num_preds_to_save", type=int, default=0,
@@ -44,8 +45,6 @@ def parse_arguments():
                         help="path to val set (must contain database and queries)")
     parser.add_argument("--test_path", type=str, default="data/sf_xs/test",
                         help="path to test set (must contain database and queries)")
-    #parser.add_argument("--ckpt_path", type=str, default="/kaggle/input/simple-vpr-codebase/_epoch(19)_step(19540)_R@1[0.0000]_R@5[0.0000].ckpt",
-    #                    help="path to checkpoint")
     parser.add_argument("--ckpt_path", type=str, default=None,
                         help="path to checkpoint")
     parser.add_argument("--only_test", type = bool, default = False,
