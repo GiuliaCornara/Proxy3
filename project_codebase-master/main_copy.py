@@ -437,4 +437,3 @@ if __name__ == '__main__':
         trainer.test(model = model, dataloaders=test_loader)
     else:
         trainer.test(model=model, dataloaders=test_loader, ckpt_path=args.ckpt_path)
-
