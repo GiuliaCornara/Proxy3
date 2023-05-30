@@ -28,7 +28,7 @@ class MyAggregator(nn.Module):
     def forward(self, x):
         x=self.summarize_feature_map(x)
         x=x.flatten(1)
-        print("")
+        print("final output")
         print(x.size())
         return x
     
