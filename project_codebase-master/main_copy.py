@@ -187,7 +187,7 @@ class ProxyBank():
 
     def update_index(self):
         # save the places as the list of the keys of the proxy bank
-        self.places = list(self.proxybank.keys()) # after initialization it is not modified
+        self.places = np.array(list(self.proxybank.keys())) # after initialization it is not modified
         #print("Number of places when updating index")
         #print(len(self.places))
         # define the proxies ---> for each place in self.places, consider the compact descriptor in the bank corresponding to
