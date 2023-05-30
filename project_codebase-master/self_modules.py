@@ -34,10 +34,11 @@ class MyAggregator(nn.Module):
             
     def summarize_feature_map(self, x, eps=1e-6):
         mean =  F.avg_pool2d(x.clamp(min=eps), (x.size(-2)//2+1, x.size(-1)//2+1), stride=(x.size(-2)//2))
-        mean_of_squared= F.avg_pool2d(x.clamp(min=eps).pow(2), (x.size(-2)//2+1, x.size(-1)//2+1), stride=(x.size(-2)//2)).flatten(2)
-        print("size of mean:")
+        mean_of_squared= F.avg_pool2d(x.clamp(min=eps).pow(2), (x.size(-2)//2+1, x.size(-1)//2+1), stride=(x.size(-2)//2))
+        print("size of mean and mean of squares:")
         print(mean.size())
-        estimator_v = mean_of_squared - mean.pow(2)
+        print(mean_of_squared.size())
+        estimator_v = (mean_of_squared - mean.pow(2)).flatten(2)
         mean=mean.flatten(2)
         result=torch.stack((mean,estimator_v), dim=-1).flatten(2)
         print("output size after aggregating feature map")
