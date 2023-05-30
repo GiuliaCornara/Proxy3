@@ -18,7 +18,20 @@ class GeM(nn.Module):
         
     def __repr__(self):
         return self.__class__.__name__ + '(' + 'p=' + '{:.4f}'.format(self.p.data.tolist()[0]) + ', ' + 'eps=' + str(self.eps) + ')'
+    
+    
+class MyAggregator(nn.Module):
+    def __init__(self, eps=1e-6):
+        super(MyAggregator,self).__init__()
+        self.eps = eps
 
+    def forward(self, x):
+        x=self.summarize_feature_map(x)
+        x=x.flatten(1)
+        print("")
+        print(x.size())
+        return x
+    
 #class to implement the MixVPR
 class FeatureMixerLayer(nn.Module):
     def __init__(self, in_dim, mlp_ratio=1):
