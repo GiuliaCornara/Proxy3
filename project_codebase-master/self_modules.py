@@ -28,21 +28,21 @@ class MyAggregator(nn.Module):
     def forward(self, x):
         x=self.summarize_feature_map(x)
         x=x.flatten(1)
-        print("final output")
-        print(x.size())
+        #print("final output")
+        #print(x.size())
         return x
             
     def summarize_feature_map(self, x, eps=1e-6):
         mean =  F.avg_pool2d(x.clamp(min=eps), (x.size(-2)//2+1, x.size(-1)//2+1), stride=(x.size(-2)//2))
         mean_of_squared= F.avg_pool2d(x.clamp(min=eps).pow(2), (x.size(-2)//2+1, x.size(-1)//2+1), stride=(x.size(-2)//2))
-        print("size of mean and mean of squares:")
+        """print("size of mean and mean of squares:")
         print(mean.size())
-        print(mean_of_squared.size())
+        print(mean_of_squared.size())"""
         estimator_v = (mean_of_squared - mean.pow(2)).flatten(2)
         mean=mean.flatten(2)
         result=torch.stack((mean,estimator_v), dim=-1).flatten(2)
-        print("output size after aggregating feature map")
-        print(result.size())
+        #print("output size after aggregating feature map")
+        #print(result.size())
         return result
     
 #class to implement the MixVPR
