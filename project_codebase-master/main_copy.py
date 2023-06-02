@@ -288,10 +288,10 @@ class LightningModel(pl.LightningModule):
         descriptors1 = self.aggregator(descriptors)
         #apply the proxyhead to obtain a new dimensionality reduction
         descriptors2 = self.proxyhead(descriptors1)
-        print("Descriptors shape (output of aggregator)")
-        print(descriptors1.shape)
-        print("Output proxy")
-        print(descriptors2.shape)
+        #print("Descriptors shape (output of aggregator)")
+        #print(descriptors1.shape)
+        #print("Output proxy")
+        #print(descriptors2.shape)
         return descriptors1, descriptors2
 
     def configure_optimizers(self):
@@ -351,11 +351,11 @@ class LightningModel(pl.LightningModule):
 
         #at each training iterations the compact descriptors obtained by the forward method after passing through the proxyhead 
         #are added to the bank
-        print("shape of compact descriptors at training step")
-        print(compact.shape)
+        #print("shape of compact descriptors at training step")
+        #print(compact.shape)
         self.bank.adddata(compact, labels)
-        print("length of bank after adddata in training_step")
-        print(self.bank.__len__())
+        #print("length of bank after adddata in training_step")
+        #print(self.bank.__len__())
         
         self.log('loss', loss.item(), logger=True)
         return {'loss': loss}
