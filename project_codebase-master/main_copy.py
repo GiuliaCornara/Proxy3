@@ -230,7 +230,7 @@ class ProxyBank():
         return len(self.proxybank)
 
 class LightningModel(pl.LightningModule):
-    def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', agg_config={}, bank=None):
+    def __init__(self, val_dataset, test_dataset, num_classes, descriptors_dim=512, num_preds_to_save=0, save_only_wrong_preds=True,  sched_name = None, max_epochs = 20, loss_name = "contrastive_loss", miner_name = None, opt_name = "SGD", agg_arch='gem', agg_config={}, bank=None):
         super().__init__()
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
@@ -244,10 +244,12 @@ class LightningModel(pl.LightningModule):
         self.loss_name = loss_name
         self.miner_name = miner_name
         self.opt_name = opt_name
+        self.sched_name = sched_name
         # Save the aggregator name
         self.agg_arch = agg_arch
         self.agg_config = agg_config
         self.embedding_size = descriptors_dim
+        self.max_epochs = max_epochs
         # Use a pretrained model
         self.model = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights.DEFAULT)
         # create the proxy head
@@ -301,10 +303,30 @@ class LightningModel(pl.LightningModule):
             optimizers = torch.optim.Adam(self.parameters(), lr=0.0001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
         if self.opt_name.lower() == "asgd":
             optimizers = torch.optim.ASGD(self.parameters(), lr=0.01, lambd=0.0001, alpha=0.75, t0=1000000.0, weight_decay=0)
-        if self.loss_name == "cosface" or self.loss_name == "arcface":
+        """if self.loss_name == "cosface" or self.loss_name == "arcface":
             self.loss_optimizer = torch.optim.SGD(self.loss_fn.parameters(), lr = 0.01)
             return [optimizers, self.loss_optimizer]
-        return optimizers
+        return optimizers"""
+        if(self.sched_name == None):
+            scheduler = None
+        elif(self.sched_name.lower() == "cosineannealing"):
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizers, self.max_epochs)
+        elif(self.sched_name.lower() == "plateau"):
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizers, mode = "min", patience = 2)
+        elif(self.sched_name.lower() == "onecycle"):
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizers, max_lr = 0.01, epochs = self.max_epochs, steps_per_epoch = len(train_loader))
+        #cosface and arcface assume normalization ---> similar to linear layers
+        if self.loss_name == "cosface" or self.loss_name == "arcface":
+            self.loss_optimizer = torch.optim.SGD(self.loss_fn.parameters(), lr = 0.01)
+            if(scheduler is None):
+                return [optimizers, self.loss_optimizer]
+            #return [optimizers, self.loss_optimizer], scheduler
+            return {"optimizer": [optimizers, self.loss_optimizer], "lr_scheduler": scheduler, "monitor" : "loss"}
+        if(scheduler is None):
+            return optimizers
+        #return [optimizers], scheduler
+        return {"optimizer": optimizers, "lr_scheduler": scheduler, "monitor" : "loss"}
+
 
 
     #  The loss function call (this method will be called at each training iteration)
@@ -400,7 +422,7 @@ if __name__ == '__main__':
     bank = ProxyBank(256)
     train_dataset, val_dataset, test_dataset, train_loader, val_loader, test_loader = get_datasets_and_dataloaders(args, bank)
     num_classes = train_dataset.__len__()
-    model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.loss_func, args.miner, args.optimizer, args.aggr, bank = bank)
+    model = LightningModel(val_dataset, test_dataset, num_classes, args.descriptors_dim, args.num_preds_to_save, args.save_only_wrong_preds, args.scheduler, args.max_epochs, args.loss_func, args.miner, args.optimizer, args.aggr, bank = bank)
     
     # Model params saving using Pytorch Lightning. Save the best 3 models according to Recall@1
     checkpoint_cb = ModelCheckpoint(
