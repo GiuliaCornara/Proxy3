@@ -279,6 +279,8 @@ class LightningModel(pl.LightningModule):
         # Set the loss function
         self.loss_fn = lm.get_loss(loss_name, num_classes, self.embedding_size)#idea: send not only the name of the loss you want
                                             # but also the num_classes in case it is CosFace or ArcFace
+        # Define the loss for the proxy head
+        self.loss_head = lm.get_loss(loss_name, num_classes, self.embedding_size)
         # Set the miner
         self.miner = lm.get_miner(miner_name)
         
@@ -347,7 +349,7 @@ class LightningModel(pl.LightningModule):
 
         # Feed forward the batch to the model
         descriptors, compact = self(images)  # Here we are calling the method forward that we defined above
-        loss = self.loss_function(descriptors, labels)  # Call the loss_function we defined above
+        loss = self.loss_function(descriptors, labels) + self.loss_head(compact,labels)  # Call the loss_function we defined above
 
         #at each training iterations the compact descriptors obtained by the forward method after passing through the proxyhead 
         #are added to the bank
